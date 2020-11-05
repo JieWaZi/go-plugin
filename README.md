@@ -17,7 +17,8 @@ func CustomHandler(w http.ResponseWriter, r *http.Request) {
 }
 ```
 在CustomHandler编写需要的代码逻辑
-2.上传完成后请求localhost:9100/specialize，将上传的代码编译为动态库，并获取对应函数名的句柄
+
+2. 上传完成后请求localhost:9100/specialize，将上传的代码编译为动态库，并获取对应函数名的句柄
 3. 请求localhost:9100/，即可运行上传的代码。
 
 ### 题外话
