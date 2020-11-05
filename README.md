@@ -1,4 +1,4 @@
-## 使用go_plugin
+## 使用go_plugin1
 
 1.Plguin 需要有自己的 main package
 2.编译的时候，使用 go build -buildmode=plugin file.go 来编译
