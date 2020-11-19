@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 type UserInfo struct {
@@ -23,10 +25,15 @@ func GetUserInfo(w http.ResponseWriter, r *http.Request) {
 			IDCard: "3606",
 		}
 		data, err := json.Marshal(user)
+		time.Sleep(2 * time.Second)
 		if err != nil {
 			log.Printf("json marshal err%s \n", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 		w.Write(data)
+	case http.MethodPost:
+		time.Sleep(5 * time.Second)
+		var slice []int
+		fmt.Println(slice[1])
 	}
 }
