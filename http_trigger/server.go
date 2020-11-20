@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/JieWazi/goplugin/http_trigger/func_plugin"
+	"github.com/JieWazi/goplugin/http_trigger/entity"
+	"github.com/JieWazi/goplugin/http_trigger/global"
+	"github.com/JieWazi/goplugin/http_trigger/middleware"
 	"github.com/JieWazi/goplugin/http_trigger/utils"
-	"github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
 	"log"
@@ -16,14 +17,7 @@ import (
 )
 
 func main() {
-	endpoint := os.Getenv("SKY_TRACE_ENDPOINT")
-	logrus.Infof("endpoint:%s", endpoint)
-	serviceName := os.Getenv("SERVICE_NAME")
-	logrus.Infof("serviceName:%s", serviceName)
-	tracer, err := utils.InitTracer(endpoint, serviceName)
-	if err != nil {
-		panic(err)
-	}
+	tracer := global.Conf.SkyTrace
 	defer tracer.CloseReporter()
 	http.HandleFunc("/upload", upload)
 	http.HandleFunc("/specialize", specializeHandler())
@@ -38,7 +32,7 @@ func main() {
 			tracer.WithHttpFunc(httpFunc, w, r)
 		} else if spiderFunc != nil {
 			defer r.Body.Close()
-			var context func_plugin.JsonContext
+			var context middleware.JsonContext
 			body, err := ioutil.ReadAll(r.Body)
 			if checkStatusInternalServerError(w, err, "read body err") {
 				return
@@ -47,11 +41,13 @@ func main() {
 			if checkStatusInternalServerError(w, err, "unmarshal body err") {
 				return
 			}
-			tool, err := func_plugin.InitFunctionTool()
-			if checkStatusInternalServerError(w, err, "init function tool err") {
-				return
-			}
-			tracer.WithSpiderFunc(spiderFunc, &context, tool)
+			tracer.WithSpiderFunc(spiderFunc, &context, &middleware.FunctionTool{
+				DataWriter: middleware.DataWriter{
+					DB: global.Conf.MySQL,
+					MQ: global.Conf.Kafka,
+				},
+				LogWriter: entity.SkyTraceWriter{},
+			})
 		}
 		tracer.UserTraceFunction()
 	})
@@ -65,8 +61,8 @@ type Function struct {
 	FileName     string `json:"fileName"`
 }
 
-var httpFunc func_plugin.HttpFunc
-var spiderFunc func_plugin.SpiderFunc
+var httpFunc middleware.HttpFunc
+var spiderFunc middleware.SpiderFunc
 var funcName string
 
 func specializeHandler() func(http.ResponseWriter, *http.Request) {
@@ -131,13 +127,13 @@ func loadPlugin(loader *utils.Loader) error {
 	return nil
 }
 
-func loadHTTPPlugin(sym plugin.Symbol) func_plugin.HttpFunc {
+func loadHTTPPlugin(sym plugin.Symbol) middleware.HttpFunc {
 	switch h := sym.(type) {
 	case *http.Handler:
 		return (*h).ServeHTTP
 	case *http.HandlerFunc:
-		return func_plugin.HttpFunc(*h)
-	case *func_plugin.HttpFunc:
+		return middleware.HttpFunc(*h)
+	case *middleware.HttpFunc:
 		return *h
 	case func(http.ResponseWriter, *http.Request):
 		return h
@@ -147,19 +143,19 @@ func loadHTTPPlugin(sym plugin.Symbol) func_plugin.HttpFunc {
 			h(c, w, r)
 		}
 	default:
-		logrus.Infof("not http plugin")
+		log.Println("not http plugin")
 		return nil
 	}
 }
 
-func loadSpiderPlugin(sym plugin.Symbol) func_plugin.SpiderFunc {
+func loadSpiderPlugin(sym plugin.Symbol) middleware.SpiderFunc {
 	switch h := sym.(type) {
-	case *func_plugin.SpiderFunc:
+	case *middleware.SpiderFunc:
 		return *h
-	case func(func_plugin.Context, *func_plugin.FunctionTool):
+	case func(middleware.Context, *middleware.FunctionTool) error:
 		return h
 	default:
-		logrus.Infof("not spider plugin")
+		log.Println("not spider plugin")
 		return nil
 	}
 }
@@ -177,7 +173,7 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		}
 		remoteFD, file, err := r.FormFile("file")
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			w.Write([]byte("upload failed."))
 			return
 		}

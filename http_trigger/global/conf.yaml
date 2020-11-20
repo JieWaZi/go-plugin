@@ -1,0 +1,15 @@
+mysql:
+  host: localhost
+  port: 3306
+  user: root
+  password: 123456
+  dbname: test
+
+kafka:
+  brokers:
+    - sss
+  topic: sss
+
+sky_trace:
+  endpoint: localhost:22915
+  service_name: fission-func-test
