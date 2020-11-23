@@ -89,7 +89,7 @@ func (s *SkyTracer) UserTraceFunction() {
 		return "", nil
 	})
 	if err != nil {
-		log.Printf("CreateLocalSpan err:%s", err.Error())
+		log.Printf("CreateEntrySpan err:%s", err.Error())
 		s.invokeFunction()
 		return
 	}
@@ -99,6 +99,11 @@ func (s *SkyTracer) UserTraceFunction() {
 	subSpan, subCtx, err := s.tracer.CreateLocalSpan(ctx)
 	subSpan.SetOperationName("Invoke function")
 	s.tool.LogWriter, err = entity.NewSkyTraceWriter(subSpan)
+	if err != nil {
+		log.Printf("CreateLocalSpan err:%s", err.Error())
+		s.invokeFunction()
+		return
+	}
 
 	// 注入到dataWriter
 	s.tool.DataWriter.DB.SetTrace(s.tracer, subCtx)

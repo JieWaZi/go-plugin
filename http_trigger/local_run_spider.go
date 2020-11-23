@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"plugin"
+	"time"
 )
 
 func main() {
@@ -31,6 +32,7 @@ func executeSpider(fileName, functionName string) {
 			LogWriter: entity.SkyTraceWriter{},
 		})
 	tracer.UserTraceFunction()
+	time.Sleep(1 * time.Second)
 }
 
 func load(fileName, functionName string) (middleware.SpiderFunc, error) {

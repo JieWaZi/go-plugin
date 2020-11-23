@@ -9,6 +9,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	"log"
 	"runtime/debug"
 	"time"
 )
@@ -108,17 +109,16 @@ func (c *MySQL) InsertSQL(sql string, args ...interface{}) error {
 		return nil
 	})
 	if err != nil {
+		log.Printf("CreateExitSpan err:%s", err.Error())
 		return err
 	}
-	defer func() {
-		span.End()
-	}()
+	defer span.End()
 	span.Tag(go2sky.TagDBStatement, sql)
 	span.Tag(go2sky.TagDBType, "mysql")
 	span.SetSpanLayer(language_agent.SpanLayer_Database)
 	span.Log(time.Now(), "INFO", fmt.Sprintf("insert sql:%s", sql))
 	time.Sleep(1 * time.Second)
-	_, err = c.db.Exec(sql)
+	_, err = c.db.Exec(sql, args...)
 	if err != nil {
 		span.Error(time.Now(), "ERROR", fmt.Sprintf("exec err:%s ,stack: %s", err.Error(), string(debug.Stack())))
 		return err

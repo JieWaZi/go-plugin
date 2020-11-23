@@ -1,9 +1,9 @@
 mysql:
-  host: localhost
-  port: 3306
+  host: 172.17.101.49
+  port: 4000
   user: root
-  password: 123456
-  dbname: test
+  password: V8Fib6rMGdHHnhcV
+  dbname: rkcc_centre__hechuan
 
 kafka:
   brokers:
@@ -11,5 +11,5 @@ kafka:
   topic: sss
 
 sky_trace:
-  endpoint: localhost:22915
+  endpoint:
   service_name: fission-func-test

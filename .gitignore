@@ -1,3 +1,4 @@
 .DS_Store
 .idea/
 http_trigger/global/conf.yaml
+http_trigger/plugin
